@@ -1,0 +1,16 @@
+
+{
+    "../nerfs/data/nerfstudio/garden": "../nerfs/og_gaussian_splatting/output/b5287e20-5/",
+    "../nerfs/data/nerfstudio/kitchen": "../nerfs/og_gaussian_splatting/output/dbde7200-f/",
+    "../nerfs/data/nerfstudio/room": "../nerfs/og_gaussian_splatting/output/a4f1fad4-6/",
+    "../nerfs/data/nerfstudio/bicycle": "../nerfs/og_gaussian_splatting/output/7d853ef3-c/",
+    "../nerfs/data/nerfstudio/counter": "../nerfs/og_gaussian_splatting/output/56003f04-1/",
+    "../nerfs/data/nerfstudio/bonsai": "../nerfs/og_gaussian_splatting/output/24f88369-5/",
+    "../nerfs/data/nerfstudio/stump": "../nerfs/og_gaussian_splatting/output/c4e344f5-a/",
+
+    "../nerfs/data/nerfstudio/playroom": "../nerfs/og_gaussian_splatting/output/ebefd1c2-7/",
+    "../nerfs/data/nerfstudio/drjohnson": "../nerfs/og_gaussian_splatting/output/da1efd51-d/",
+
+    "../nerfs/data/nerfstudio/train": "../nerfs/og_gaussian_splatting/output/0b8edce2-7/",
+    "../nerfs/data/nerfstudio/truck": "../nerfs/og_gaussian_splatting/output/cc98c5bd-6/"
+}
