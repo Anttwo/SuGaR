@@ -1,8 +1,10 @@
 *.pt
 *.pth
-outputs
+output*
 *.slurm
 *.pyc
+*.ply
+*.obj
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
