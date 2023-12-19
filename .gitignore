@@ -5,6 +5,7 @@ output*
 *.pyc
 *.ply
 *.obj
+*.ipynb
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
