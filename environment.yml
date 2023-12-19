@@ -1,4 +1,4 @@
-name: sugartest
+name: sugar
 channels:
   - pytorch3d
   - plotly
@@ -244,4 +244,3 @@ dependencies:
       - threadpoolctl==3.2.0
       - tzdata==2023.3
       - werkzeug==3.0.1
-prefix: /home/aguedon/miniconda3/envs/sugartest
