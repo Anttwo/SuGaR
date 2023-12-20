@@ -30,7 +30,9 @@ if __name__ == "__main__":
     
     # Regularization for coarse SuGaR
     parser.add_argument('-r', '--regularization_type', type=str,
-                        help='(Required) Type of regularization to use for coarse SuGaR. Can be "sdf" or "density".')
+                        help='(Required) Type of regularization to use for coarse SuGaR. Can be "sdf" or "density". ' 
+                        'For reconstructing detailed objects centered in the scene with 360° coverage, "density" provides a better foreground mesh. '
+                        'For a stronger regularization and a better balance between foreground and background, choose "sdf".')
     
     # Extract mesh
     parser.add_argument('-l', '--surface_level', type=float, default=0.3, 

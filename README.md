@@ -205,14 +205,15 @@ The most important arguments for the `train.py` script are the following:
 | :-------: | :--: | :---------: |
 | `--scene_path` / `-s`   | `str` | Path to the source directory containing a COLMAP or Synthetic NeRF data set.|
 | `--checkpoint_path` / `-c` | `str` | Path to the checkpoint directory of the vanilla 3D Gaussian Splatting model. |
-| `--regularization_type` / `-r` | `str` | Type of regularization to use for optimizing SuGaR. Can be `"density"` or `"sdf"`. |
+| `--regularization_type` / `-r` | `str` | Type of regularization to use for optimizing SuGaR. Can be `"density"` or `"sdf"`. For reconstructing detailed objects centered in the scene with 360° coverage, `"density"` provides a better foreground mesh. For a stronger regularization and a better balance between foreground and background, choose `"sdf"`. |
 | `--eval` | `bool` | If True, performs an evaluation split of the training images. Default is `True`. |
 | `--low_poly` | `bool` | If True, uses the standard config for a low poly mesh, with `200_000` vertices and `6` Gaussians per triangle. |
 | `--high_poly` | `bool` | If True, uses the standard config for a high poly mesh, with `1_000_000` vertices and `1` Gaussian per triangle. |
 | `--refinement_time` | `str` | Default configs for time to spend on refinement. Can be `"short"` (2k iterations), `"medium"` (7k iterations) or `"long"` (15k iterations). |
 | `--export_uv_textured_mesh` / `-t` | `bool` | If True, will optimize and export a traditional textured mesh as an `.obj` file from the refined SuGaR model, after refinement. Computing a traditional color UV texture should take less than 10 minutes. Default is `True`. |
 
-We provide more details about the two regularization methods `"density"` and `"sdf"` in the next section. The default configuration is `high_poly` with `refinement_time` set to `"long"`. Results are saved in the `output/` directory.<br>
+We provide more details about the two regularization methods `"density"` and `"sdf"` in the next section. For reconstructing detailed objects centered in the scene with 360° coverage, `"density"` provides a better foreground mesh. For a stronger regularization and a better balance between foreground and background, choose `"sdf"`. <br>
+The default configuration is `high_poly` with `refinement_time` set to `"long"`. Results are saved in the `output/` directory.<br>
 
 As we explain in the paper, this script extracts a mesh in 30~35 minutes on average on a single GPU. After mesh extraction, the refinement time only takes a few minutes when using `--refinement_time "short"`, but can take up to an hour when using `--refinement_time "long"`. A short refinement time is enough to produce a good-looking hybrid representation in most cases.
 
@@ -323,7 +324,7 @@ _Note: If the sub-models have common registered images, they could be merged int
 
 ### 3. Density or SDF? Choose a regularization method that fits your scene
 
-As we explain in the paper, we provide two separate regularization methods for SuGaR: a density regularization and an SDF regularization. The density regularization is the simplest one, but the SDF provides a stronger regularization, especially in background regions. 
+As we explain in the paper, we provide two separate regularization methods for SuGaR: a density regularization and an SDF regularization. The density regularization is the simplest one and works well with objects centered in the scene. The SDF provides a stronger regularization, especially in background regions. 
 As a consequence, the SDF regularization produces higher metrics on standard datasets. 
 However, for reconstructing an object centered in the scene with images taken from all around the object, the simpler density regularization generally produces a better mesh.
 
