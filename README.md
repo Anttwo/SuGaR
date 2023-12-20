@@ -112,6 +112,14 @@ Please note that the final step, _Textured mesh extraction_, is optional but is 
 <img src="./media/overview/kitchen_texture.png" alt="kitchen_notex.gif" height="135"/>
 <img src="./media/overview/qant03_texture.png" alt="qant03_notex.gif" height="135"/>
 <img src="./media/overview/dukemon_texture.png" alt="dukemon_notex.gif" height="135"/><br>
+</div><br>
+
+Below is another example of a scene showing a robot with a black and specular material. The following images display the hybrid representation (Mesh + Gaussians on the surface), the mesh with a traditional colored UV texture, and a depth map of the mesh:
+<div align="center">
+<b>Hybrid representation - Textured mesh - Depth map of the mesh</b><br>
+<img src="./media/examples/alpha_hybrid.png" alt="alpha_hybrid.png" height="400"/>
+<img src="./media/examples/alpha_texture.png" alt="alpha_texture.gif" height="400"/>
+<img src="./media/examples/alpha_depth.png" alt="alpha_depth.gif" height="400"/>
 </div>
 
 ## Installation
