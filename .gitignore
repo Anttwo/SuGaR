@@ -5,7 +5,7 @@ output*
 *.pyc
 *.ply
 *.obj
-*.ipynb
+sugar_tests.ipynb
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

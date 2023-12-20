@@ -1,4 +1,5 @@
 import torch.nn as nn
+import open3d as o3d
 from pytorch3d.renderer import TexturesUV, TexturesVertex
 from pytorch3d.structures import Meshes
 from pytorch3d.transforms import quaternion_apply, quaternion_invert, matrix_to_quaternion, quaternion_to_matrix
@@ -2148,7 +2149,42 @@ class SuGaR(nn.Module):
         checkpoint['state_dict'] = self.state_dict()
         for k, v in kwargs.items():
             checkpoint[k] = v
-        torch.save(checkpoint, path)
+        torch.save(checkpoint, path)        
+
+
+def load_refined_model(refined_sugar_path, nerfmodel:GaussianSplattingWrapper):
+    checkpoint = torch.load(refined_sugar_path, map_location=nerfmodel.device)
+    n_faces = checkpoint['state_dict']['_surface_mesh_faces'].shape[0]
+    n_gaussians = checkpoint['state_dict']['_scales'].shape[0]
+    n_gaussians_per_surface_triangle = n_gaussians // n_faces
+
+    print("Loading refined model...")
+    print(f'{n_faces} faces detected.')
+    print(f'{n_gaussians} gaussians detected.')
+    print(f'{n_gaussians_per_surface_triangle} gaussians per surface triangle detected.')
+
+    with torch.no_grad():
+        o3d_mesh = o3d.geometry.TriangleMesh()
+        o3d_mesh.vertices = o3d.utility.Vector3dVector(checkpoint['state_dict']['_points'].cpu().numpy())
+        o3d_mesh.triangles = o3d.utility.Vector3iVector(checkpoint['state_dict']['_surface_mesh_faces'].cpu().numpy())
+        # o3d_mesh.vertex_normals = o3d.utility.Vector3dVector(normals.cpu().numpy())
+        o3d_mesh.vertex_colors = o3d.utility.Vector3dVector(torch.ones_like(checkpoint['state_dict']['_points']).cpu().numpy())
+        
+    refined_sugar = SuGaR(
+        nerfmodel=nerfmodel,
+        points=checkpoint['state_dict']['_points'],
+        colors=SH2RGB(checkpoint['state_dict']['_sh_coordinates_dc'][:, 0, :]),
+        initialize=False,
+        sh_levels=nerfmodel.gaussians.active_sh_degree+1,
+        keep_track_of_knn=False,
+        knn_to_track=0,
+        beta_mode='average',
+        surface_mesh_to_bind=o3d_mesh,
+        n_gaussians_per_surface_triangle=n_gaussians_per_surface_triangle,
+        )
+    refined_sugar.load_state_dict(checkpoint['state_dict'])
+    
+    return refined_sugar
 
 
 def load_rc_model(
