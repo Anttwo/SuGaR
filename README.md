@@ -61,6 +61,7 @@ Retrieving such an editable mesh for realistic rendering is done within minutes 
 <details>
 <summary><span style="font-weight: bold;">Updates</span></summary>
 <ul>
+  <li><b>[12/20/2023]</b> Added a short notebook showing how to render images with the hybrid representation using the Gaussian Splatting rasterizer.</li>
   <li><b>[12/18/2023]</b> Code release.</li>
 </ul>
 </details><br>
@@ -68,8 +69,6 @@ Retrieving such an editable mesh for realistic rendering is done within minutes 
 <details>
 <summary><span style="font-weight: bold;">To-do list</span></summary>
 <ul>
-  <li><b>Render images with the hybrid representation:</b> Write a tutorial notebook on how to render images with the hybrid representation using the Gaussian Splatting rasterizer.
-  </li>
   <li><b>Composition and animation:</b> Finish to clean the code for composition and animation, and add it to the <code>sugar_scene/sugar_compositor.py</code> script.
   </li>
   <li><b>Composition and animation:</b> Make a tutorial on how to use the scripts in the <code>blender</code> directory and the <code>sugar_scene/sugar_compositor.py</code> class to import composition and animation data into PyTorch and apply it to the SuGaR hybrid representation.
