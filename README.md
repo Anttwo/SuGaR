@@ -69,6 +69,10 @@ Retrieving such an editable mesh for realistic rendering is done within minutes 
 <details>
 <summary><span style="font-weight: bold;">To-do list</span></summary>
 <ul>
+  <li><b>Using SuGaR with Windows:</b> Adapt the code to make it compatible with Windows. Due to path-writing conventions, the current code is not compatible with Windows. 
+  </li>
+  <li><b>Synthetic datasets:</b> Add the possibility to use the NeRF synthetic dataset (which has a different format than COLMAP scenes)
+  </li>
   <li><b>Composition and animation:</b> Finish to clean the code for composition and animation, and add it to the <code>sugar_scene/sugar_compositor.py</code> script.
   </li>
   <li><b>Composition and animation:</b> Make a tutorial on how to use the scripts in the <code>blender</code> directory and the <code>sugar_scene/sugar_compositor.py</code> class to import composition and animation data into PyTorch and apply it to the SuGaR hybrid representation.
@@ -198,19 +202,19 @@ Please refer to the <a href="https://github.com/graphdeco-inria/gaussian-splatti
 Start by optimizing a vanilla Gaussian Splatting model for 7k iterations by running the script `gaussian_splatting/train.py`, as shown below. Please refer to the original <a href="https://github.com/graphdeco-inria/gaussian-splatting">3D Gaussian Splatting repository</a> for more details. This optimization should be very fast, and last only a few minutes.
 
 ```shell
-python gaussian_splatting/train.py -s <path to COLMAP or NeRF Synthetic dataset> --iterations 7000 -m <path to the desired output directory>
+python gaussian_splatting/train.py -s <path to COLMAP dataset> --iterations 7000 -m <path to the desired output directory>
 ```
 
 Then, run the script `train.py` in the root directory to optimize a SuGaR model.
 
 ```shell
-python train.py -s <path to COLMAP or NeRF Synthetic dataset> -c <path to the Gaussian Splatting checkpoint> -r <"density" or "sdf">
+python train.py -s <path to COLMAP dataset> -c <path to the Gaussian Splatting checkpoint> -r <"density" or "sdf">
 ```
 
 The most important arguments for the `train.py` script are the following:
 | Parameter | Type | Description |
 | :-------: | :--: | :---------: |
-| `--scene_path` / `-s`   | `str` | Path to the source directory containing a COLMAP or Synthetic NeRF data set.|
+| `--scene_path` / `-s`   | `str` | Path to the source directory containing a COLMAP dataset.|
 | `--checkpoint_path` / `-c` | `str` | Path to the checkpoint directory of the vanilla 3D Gaussian Splatting model. |
 | `--regularization_type` / `-r` | `str` | Type of regularization to use for optimizing SuGaR. Can be `"density"` or `"sdf"`. For reconstructing detailed objects centered in the scene with 360° coverage, `"density"` provides a better foreground mesh. For a stronger regularization and a better balance between foreground and background, choose `"sdf"`. |
 | `--eval` | `bool` | If True, performs an evaluation split of the training images. Default is `True`. |
@@ -234,7 +238,7 @@ Below is a detailed list of all the command line arguments for the `train.py` sc
 
 | Parameter | Type | Description |
 | :-------: | :--: | :---------: |
-| `--scene_path` / `-s`   | `str` | Path to the source directory containing a COLMAP or Synthetic NeRF data set.|
+| `--scene_path` / `-s`   | `str` | Path to the source directory containing a COLMAP data set.|
 | `--checkpoint_path` / `-c` | `str` | Path to the checkpoint directory of the vanilla 3D Gaussian Splatting model. |
 | `--iteration_to_load` / `-i` | `int` | Iteration to load from the 3DGS checkpoint directory. If not specified, loads the iteration `7000`. |
 | `--eval` | `bool` | If True, performs an evaluation split of the training images. Default is `True`. |
