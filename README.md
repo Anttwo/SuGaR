@@ -51,8 +51,8 @@ Retrieving such an editable mesh for realistic rendering is done within minutes 
 @article{guedon2023sugar,
   title={SuGaR: Surface-Aligned Gaussian Splatting for Efficient 3D Mesh Reconstruction and High-Quality Mesh Rendering},
   author={Gu{\'e}don, Antoine and Lepetit, Vincent},
-  journal={arXiv:2311.12775},
-  year={2023},
+  journal={arXiv preprint arXiv:2311.12775},
+  year={2023}
 }
 ```
 
