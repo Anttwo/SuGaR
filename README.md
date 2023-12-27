@@ -69,6 +69,8 @@ Retrieving such an editable mesh for realistic rendering is done within minutes 
 <details>
 <summary><span style="font-weight: bold;">To-do list</span></summary>
 <ul>
+  <li><b>Using precomputed masks with SuGaR:</b> Add a mask functionality to the SuGaR optimization, to allow the user to mask out some pixels in the training images (like white backgrounds in synthetic datasets).
+  </li>
   <li><b>Using SuGaR with Windows:</b> Adapt the code to make it compatible with Windows. Due to path-writing conventions, the current code is not compatible with Windows. 
   </li>
   <li><b>Synthetic datasets:</b> Add the possibility to use the NeRF synthetic dataset (which has a different format than COLMAP scenes)
