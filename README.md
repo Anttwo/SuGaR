@@ -69,6 +69,7 @@ Retrieving such an editable mesh for realistic rendering is done within minutes 
 <details>
 <summary><span style="font-weight: bold;">To-do list</span></summary>
 <ul>
+  <li><b>Improvement:</b> Add an <code>if</code> block to <code>sugar_extractors/coarse_mesh.py</code> to skip foreground mesh reconstruction and avoid triggering an error if no surface point is detected inside the foreground bounding box. This can be useful for users that want to reconstruct "<i>background scenes</i>". </li>
   <li><b>Using precomputed masks with SuGaR:</b> Add a mask functionality to the SuGaR optimization, to allow the user to mask out some pixels in the training images (like white backgrounds in synthetic datasets).
   </li>
   <li><b>Using SuGaR with Windows:</b> Adapt the code to make it compatible with Windows. Due to path-writing conventions, the current code is not compatible with Windows. 
