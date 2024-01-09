@@ -12,7 +12,7 @@ from sugar_utils.spherical_harmonics import (
 )
 from sugar_utils.graphics_utils import *
 from sugar_utils.general_utils import inverse_sigmoid
-from sugar_scene.gs_model import GaussianSplattingWrapper
+from sugar_scene.gs_model import GaussianSplattingWrapper, GaussianModel
 from sugar_scene.cameras import CamerasWrapper
 
 
@@ -2526,3 +2526,27 @@ def extract_texture_image_and_uv_from_gaussians(
         texture_img = texture_img / texture_counter.clamp(min=1)        
     
     return verts_uv, faces_uv, texture_img
+
+
+def convert_refined_sugar_into_gaussians(refined_sugar):
+    new_gaussians = GaussianModel(refined_sugar.sh_levels - 1)
+    
+    with torch.no_grad():
+        xyz = refined_sugar.points.cpu().numpy()
+        opacities = refined_sugar.all_densities.cpu().numpy()
+        features_dc = refined_sugar._sh_coordinates_dc.permute(0, 2, 1).cpu().numpy()
+        features_extra = refined_sugar._sh_coordinates_rest.permute(0, 2, 1).cpu().numpy()
+        
+        scales = scale_inverse_activation(refined_sugar.scaling).cpu().numpy()
+        rots = refined_sugar.quaternions.cpu().numpy()
+
+    new_gaussians._xyz = torch.nn.Parameter(torch.tensor(xyz, dtype=torch.float, device="cuda").requires_grad_(True))
+    new_gaussians._features_dc = torch.nn.Parameter(torch.tensor(features_dc, dtype=torch.float, device="cuda").transpose(1, 2).contiguous().requires_grad_(True))
+    new_gaussians._features_rest = torch.nn.Parameter(torch.tensor(features_extra, dtype=torch.float, device="cuda").transpose(1, 2).contiguous().requires_grad_(True))
+    new_gaussians._opacity = torch.nn.Parameter(torch.tensor(opacities, dtype=torch.float, device="cuda").requires_grad_(True))
+    new_gaussians._scaling = torch.nn.Parameter(torch.tensor(scales, dtype=torch.float, device="cuda").requires_grad_(True))
+    new_gaussians._rotation = torch.nn.Parameter(torch.tensor(rots, dtype=torch.float, device="cuda").requires_grad_(True))
+
+    new_gaussians.active_sh_degree = new_gaussians.max_sh_degree
+    
+    return new_gaussians

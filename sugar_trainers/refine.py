@@ -5,7 +5,7 @@ import open3d as o3d
 from pytorch3d.loss import mesh_laplacian_smoothing, mesh_normal_consistency
 from pytorch3d.transforms import quaternion_apply, quaternion_invert
 from sugar_scene.gs_model import GaussianSplattingWrapper, fetchPly
-from sugar_scene.sugar_model import SuGaR
+from sugar_scene.sugar_model import SuGaR, convert_refined_sugar_into_gaussians
 from sugar_scene.sugar_optimizer import OptimizationParams, SuGaROptimizer
 from sugar_scene.sugar_densifier import SuGaRDensifier
 from sugar_utils.loss_utils import ssim, l1_loss, l2_loss
@@ -285,6 +285,8 @@ def refined_training(args):
     
     use_eval_split = args.eval
     
+    export_ply_at_the_end = args.export_ply
+    
     ply_path = os.path.join(source_path, "sparse/0/points3D.ply")
     
     CONSOLE.print("-----Parsed parameters-----")
@@ -302,6 +304,7 @@ def refined_training(args):
         CONSOLE.print("Foreground bounding box min:", fg_bbox_min)
         CONSOLE.print("Foreground bounding box max:", fg_bbox_max)
     CONSOLE.print("Use eval split:", use_eval_split)
+    CONSOLE.print("Export ply at the end:", export_ply_at_the_end)
     CONSOLE.print("----------------------------")
     
     # Setup device
@@ -863,4 +866,22 @@ def refined_training(args):
                     )
 
     CONSOLE.print("Final model saved.")
+    
+    if export_ply_at_the_end:
+        # Build path
+        CONSOLE.print("\nExporting ply file with refined Gaussians...")
+        tmp_list = model_path.split(os.sep)
+        tmp_list[2] = 'refined_ply'
+        tmp_list.pop(-1)
+        tmp_list[-1] = tmp_list[-1] + '.ply'
+        refined_ply_save_dir = os.path.join(*tmp_list[:-1])
+        refined_ply_save_path = os.path.join(*tmp_list)
+        
+        os.makedirs(refined_ply_save_dir, exist_ok=True)
+        
+        # Export and save ply
+        refined_gaussians = convert_refined_sugar_into_gaussians(sugar)
+        refined_gaussians.save_ply(refined_ply_save_path)
+        CONSOLE.print("Ply file exported. This file is needed for using the dedicated viewer.")
+    
     return model_path

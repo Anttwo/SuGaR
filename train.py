@@ -67,6 +67,11 @@ if __name__ == "__main__":
     parser.add_argument('--postprocess_iterations', type=int, default=5,
                         help='Number of iterations to use for postprocessing the mesh.')
     
+    # (Optional) PLY file export
+    parser.add_argument('--export_ply', type=str2bool, default=True,
+                        help='If True, export a ply file with the refined 3D Gaussians at the end of the training. '
+                        'This file can be large (+/- 500MB), but is needed for using the dedicated viewer. Default is True.')
+    
     # (Optional) Default configurations
     parser.add_argument('--low_poly', type=str2bool, default=False, 
                         help='Use standard config for a low poly mesh, with 200k vertices and 6 Gaussians per triangle.')
@@ -102,6 +107,8 @@ if __name__ == "__main__":
         print('Using long refinement time.')
     if args.export_uv_textured_mesh:
         print('Will export a UV-textured mesh as an .obj file.')
+    if args.export_ply:
+        print('Will export a ply file with the refined 3D Gaussians at the end of the training.')
     
     # ----- Optimize coarse SuGaR -----
     coarse_args = AttrDict({
@@ -156,6 +163,7 @@ if __name__ == "__main__":
         'refinement_iterations': args.refinement_iterations,
         'bboxmin': args.bboxmin,
         'bboxmax': args.bboxmax,
+        'export_ply': args.export_ply,
         'eval': args.eval,
         'gpu': args.gpu,
     })

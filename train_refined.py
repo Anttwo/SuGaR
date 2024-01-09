@@ -38,6 +38,9 @@ if __name__ == "__main__":
     parser.add_argument('--eval', type=str2bool, default=True, help='Use eval split.')
     
     parser.add_argument('--gpu', type=int, default=0, help='Index of GPU device to use.')
+    
+    parser.add_argument('--export_ply', type=str2bool, default=True, 
+                        help='If True, export a ply files with the refined 3D Gaussians at the end of the training.')
 
     args = parser.parse_args()
     

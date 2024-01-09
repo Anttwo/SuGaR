@@ -1,0 +1,170 @@
+:root {
+  /* font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif; */
+  font-family: Roboto, sans-serif;  
+  line-height: 1.5;
+  font-weight: 500;
+
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #242424;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  color: #448D87;
+  text-decoration: inherit;
+}
+a:hover {
+  color: #5ee0d6;
+}
+
+body {
+  font-family: Roboto, sans-serif;  
+  margin: 0;
+  display: flex;
+  place-items: center;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+h1 {
+  font-size: 3.2em;
+  line-height: 1.1;
+  font-weight: 100;
+}
+
+button {
+  font-family: Roboto, sans-serif;  
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 100;
+  /* font-family: inherit; */
+  background-color: #1a1a1a;
+  cursor: pointer;
+  transition: border-color 0.25s;
+}
+button:hover {
+  font-family: Roboto, sans-serif;  
+  border-color: #646cff;
+}
+button:focus,
+button:focus-visible {
+  outline: 4px auto -webkit-focus-ring-color;
+}
+
+/* Modified */
+.banner {
+  /* The image used */
+  background: rgba( 0, 0, 0, 0.5 ); 
+  /* left: 100px;
+  top: 100px; */
+  /* display: block; */
+  position: absolute;
+  width: 100%;
+  height: 100px;
+  top: 0px;
+}
+
+.hudstill {
+  /* font-family: Roboto, sans-serif;   */
+  font-weight: 100;
+  display: block;
+  color: white;
+  position: absolute;
+  left: 100px;
+  top: 0px;
+  background: none;
+  border: none;
+  border-radius: 1em;
+  text-align: center;
+  /* font-family: sans-serif; */
+  font-size: 300%;
+  padding: 0px;
+}
+
+.hud {
+  /* font-family: Roboto, sans-serif;   */
+  font-weight: 100;
+  display: block;
+  color: white;
+  position: absolute;
+  left: 100px;
+  top: 60px;
+  background: none;
+  border: none;
+  border-radius: 1em;
+  text-align: center;
+  /* font-family: sans-serif; */
+  font-size: 150%;
+  padding: 0px;
+}
+
+.footer {
+  /* The image used */
+  background: rgba( 0, 0, 0, 0.5 ); 
+  /* left: 100px;
+  top: 100px; */
+  /* display: block; */
+  position: absolute;
+  width: 100%;
+  height: 25px;
+  bottom: 0px;
+  text-align: center;
+}
+
+.logo {
+  height: 50px;
+  /* padding: 1.5em; */
+  /* will-change: filter; */
+  /* transition: filter 300ms; */
+  position: absolute;
+  top: 15px;
+  text-align: center;
+}
+.logo.hybrid {
+  right: 350px;
+}
+.logo.texture {
+  right: 225px;
+}
+.logo.wire {
+  right: 100px;
+}
+.logo:hover {
+  cursor: pointer;
+  color: #5ee0d6;
+  filter: drop-shadow(0 0 2em #5ee0d6);
+}
+
+.logoimg {
+  /* height: 50px; */
+  /* padding: 1.5em; */
+  /* will-change: filter; */
+  /* transition: filter 300ms; */
+  /* position: absolute; */
+  top: 0px;
+  height: 100%;
+  color: inherit;
+}
+
+
+
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color: #213547;
+    background-color: #ffffff;
+  }
+  a:hover {
+    color: #747bff;
+  }
+  button {
+    background-color: #f9f9f9;
+  }
+}

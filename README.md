@@ -61,6 +61,7 @@ Retrieving such an editable mesh for realistic rendering is done within minutes 
 <details>
 <summary><span style="font-weight: bold;">Updates</span></summary>
 <ul>
+  <li><b>[01/09/2023]</b> Added a dedicated, real-time viewer to let users visualize and navigate in the reconstructed scenes (hybrid representation, textured mesh and wireframe mesh).</li>
   <li><b>[12/20/2023]</b> Added a short notebook showing how to render images with the hybrid representation using the Gaussian Splatting rasterizer.</li>
   <li><b>[12/18/2023]</b> Code release.</li>
 </ul>
@@ -225,6 +226,7 @@ The most important arguments for the `train.py` script are the following:
 | `--high_poly` | `bool` | If True, uses the standard config for a high poly mesh, with `1_000_000` vertices and `1` Gaussian per triangle. |
 | `--refinement_time` | `str` | Default configs for time to spend on refinement. Can be `"short"` (2k iterations), `"medium"` (7k iterations) or `"long"` (15k iterations). |
 | `--export_uv_textured_mesh` / `-t` | `bool` | If True, will optimize and export a traditional textured mesh as an `.obj` file from the refined SuGaR model, after refinement. Computing a traditional color UV texture should take less than 10 minutes. Default is `True`. |
+| `--export_ply` | `bool` | If True, export a `.ply` file with the refined 3D Gaussians at the end of the training. This file can be large (+/- 500MB), but is needed for using the dedicated viewer. Default is `True`. |
 
 We provide more details about the two regularization methods `"density"` and `"sdf"` in the next section. For reconstructing detailed objects centered in the scene with 360° coverage, `"density"` provides a better foreground mesh. For a stronger regularization and a better balance between foreground and background, choose `"sdf"`. <br>
 The default configuration is `high_poly` with `refinement_time` set to `"long"`. Results are saved in the `output/` directory.<br>
@@ -279,6 +281,12 @@ Below is a detailed list of all the command line arguments for the `train.py` sc
 | `--postprocess_density_threshold` | `float` | Threshold to use for postprocessing the mesh. Default is `0.1`. |
 | `--postprocess_iterations` | `int` | Number of iterations to use for postprocessing the mesh. Default is `5`. |
 
+#### (Optional) Parameters for exporting PLY files for the dedicated viewer
+
+| Parameter | Type | Description |
+| :-------: | :--: | :---------: |
+| `--export_ply` | `bool` | If True, export a `.ply` file with the refined 3D Gaussians at the end of the training. This file can be large (+/- 500MB), but is needed for using the dedicated viewer. Default is `True`. |
+
 #### (Optional) Default configurations
 
 | Parameter | Type | Description |
@@ -289,6 +297,44 @@ Below is a detailed list of all the command line arguments for the `train.py` sc
 
 </details>
 
+
+## Installing and using the real-time viewer
+
+### 1. Installation
+
+*The viewer is currently built for Linux and Mac OS. It is not compatible with Windows. For Windows users, we recommend to use WSL2 (Windows Subsystem for Linux), as it is very easy to install and use. Please refer to the <a href="https://docs.microsoft.com/en-us/windows/wsl/install-win10">official documentation</a> for more details.<br> We thank <a href="https://github.com/mkkellogg/GaussianSplats3D">Mark Kellogg for his awesome 3D Gaussian Splatting implementation for Three.js</a>, which we used for building this viewer.*
+
+Please start by installing the latest versions of Node.js (such as 21.x) and npm.
+A simple way to do this is to run the following commands (using aptitude):
+
+```shell
+curl -fsSL https://deb.nodesource.com/setup_21.x | sudo -E bash -
+sudo apt-get install -y nodejs
+sudo apt-get install aptitude
+sudo aptitude install -y npm
+```
+
+Then, go inside the `./sugar_viewer/` directory and run the following commands:
+
+```shell
+npm install
+cd ..
+```
+
+### 2. Usage
+
+First, make sure you have exported a `.ply` file and an `.obj` file using the `train.py` script. The `.ply` file contains the refined 3D Gaussians, and the `.obj` file contains the textured mesh. These files are exported by default when running the `train.py` script, so if you ran the code with default values for `--export_ply` and `--export_uv_textured_mesh`, you should be good to go.
+
+The ply file should be located in `./output/refined_ply/<your scene name>/`. Then, just run the following command in the root directory to start the viewer:
+
+```shell
+python run_viewer.py -p <path to the .ply file>
+```
+This command will redirect you to a local URL. Click on the link to open the viewer in your browser. 
+
+<div align="center" >
+<img src="./media/examples/viewer_example.png" alt="viewer_example.png" width="800"/>
+</div><br>
 
 ## Tips for using SuGaR on your own data and obtain better reconstructions
 
