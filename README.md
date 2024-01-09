@@ -330,7 +330,7 @@ The ply file should be located in `./output/refined_ply/<your scene name>/`. The
 ```shell
 python run_viewer.py -p <path to the .ply file>
 ```
-This command will redirect you to a local URL. Click on the link to open the viewer in your browser. 
+This command will redirect you to a local URL. Click on the link to open the viewer in your browser. Click the icons on the top right to switch between the different representations (hybrid representation, textured mesh, wireframe mesh). Use the mouse to rotate the scene, and the mouse wheel to zoom in and out. 
 
 <div align="center" >
 <img src="./media/examples/viewer_example.png" alt="viewer_example.png" width="800"/>
