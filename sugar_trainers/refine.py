@@ -871,7 +871,7 @@ def refined_training(args):
         # Build path
         CONSOLE.print("\nExporting ply file with refined Gaussians...")
         tmp_list = model_path.split(os.sep)
-        tmp_list[2] = 'refined_ply'
+        tmp_list[-4] = 'refined_ply'
         tmp_list.pop(-1)
         tmp_list[-1] = tmp_list[-1] + '.ply'
         refined_ply_save_dir = os.path.join(*tmp_list[:-1])
