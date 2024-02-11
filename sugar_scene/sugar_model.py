@@ -415,7 +415,7 @@ class SuGaR(nn.Module):
                 faces_verts = self._points[self._surface_mesh_faces]
                 faces_centers = faces_verts.mean(dim=1, keepdim=True)
                 scaling_factor = (faces_verts - faces_centers).norm(dim=-1).mean(dim=-1, keepdim=True) / self.reference_scaling_factor
-                plane_scales = plane_scales * scaling_factor
+                plane_scales = plane_scales * scaling_factor[:, None].expand(-1, self.n_gaussians_per_surface_triangle, -1).reshape(-1, 1)
             scales = torch.cat([
                 self.surface_mesh_thickness * torch.ones(len(self._scales), 1, device=self.device), 
                 plane_scales,
