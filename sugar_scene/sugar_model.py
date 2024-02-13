@@ -1,3 +1,4 @@
+import sys
 import torch.nn as nn
 import open3d as o3d
 from pytorch3d.renderer import TexturesUV, TexturesVertex
@@ -19,6 +20,7 @@ from sugar_scene.cameras import CamerasWrapper
 scale_activation = torch.exp
 scale_inverse_activation = torch.log
         
+os.environ["PYTORCH_NO_CUDA_MEMORY_CACHING"]= "1"
 
 def _initialize_radiuses_gauss_rasterizer(sugar):
     """Function to initialize the  of a SuGaR model.
