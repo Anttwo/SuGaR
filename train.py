@@ -93,7 +93,7 @@ if __name__ == "__main__":
         args.gaussians_per_triangle = 6
         print('Using low poly config.')
     if args.high_poly:
-        args.n_vertices_in_mesh = 1_000_000
+        args.n_vertices_in_mesh = 2_000_000 #Change to 2M to test OOM
         args.gaussians_per_triangle = 1
         print('Using high poly config.')
     if args.refinement_time == 'short':
