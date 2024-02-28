@@ -1,4 +1,5 @@
 import argparse
+from pathlib import Path
 from sugar_utils.general_utils import str2bool
 from sugar_trainers.coarse_density import coarse_training_with_density_regularization
 from sugar_trainers.coarse_sdf import coarse_training_with_sdf_regularization
@@ -79,7 +80,9 @@ if __name__ == "__main__":
                         help='Use standard config for a high poly mesh, with 1M vertices and 1 Gaussians per triangle.')
     parser.add_argument('--refinement_time', type=str, default=None, 
                         help="Default configs for time to spend on refinement. Can be 'short', 'medium' or 'long'.")
-      
+    parser.add_argument('-o', '--output', type=str, default="./output/", 
+                        help='Output directory for the meshes')
+    
     # Evaluation split
     parser.add_argument('--eval', type=str2bool, default=True, help='Use eval split.')
 
@@ -109,13 +112,14 @@ if __name__ == "__main__":
         print('Will export a UV-textured mesh as an .obj file.')
     if args.export_ply:
         print('Will export a ply file with the refined 3D Gaussians at the end of the training.')
+    output_dir = Path(args.output)
     
     # ----- Optimize coarse SuGaR -----
     coarse_args = AttrDict({
         'checkpoint_path': args.checkpoint_path,
         'scene_path': args.scene_path,
         'iteration_to_load': args.iteration_to_load,
-        'output_dir': None,
+        'output_dir': output_dir/"coarse",
         'eval': args.eval,
         'estimation_factor': 0.2,
         'normal_factor': 0.2,
@@ -137,7 +141,7 @@ if __name__ == "__main__":
         'coarse_model_path': coarse_sugar_path,
         'surface_level': args.surface_level,
         'decimation_target': args.n_vertices_in_mesh,
-        'mesh_output_dir': None,
+        'mesh_output_dir': output_dir/"coarse",
         'bboxmin': args.bboxmin,
         'bboxmax': args.bboxmax,
         'center_bbox': args.center_bbox,
@@ -155,7 +159,7 @@ if __name__ == "__main__":
         'scene_path': args.scene_path,
         'checkpoint_path': args.checkpoint_path,
         'mesh_path': coarse_mesh_path,      
-        'output_dir': None,
+        'output_dir': output_dir/"refined",
         'iteration_to_load': args.iteration_to_load,
         'normal_consistency_factor': 0.1,    
         'gaussians_per_triangle': args.gaussians_per_triangle,        
@@ -176,8 +180,9 @@ if __name__ == "__main__":
             'scene_path': args.scene_path,
             'iteration_to_load': args.iteration_to_load,
             'checkpoint_path': args.checkpoint_path,
+            'coarse_mesh_path': coarse_mesh_path,
             'refined_model_path': refined_sugar_path,
-            'mesh_output_dir': None,
+            'mesh_output_dir': output_dir/"refined",
             'n_gaussians_per_surface_triangle': args.gaussians_per_triangle,
             'square_size': args.square_size,
             'eval': args.eval,
