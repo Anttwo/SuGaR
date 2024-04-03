@@ -224,7 +224,8 @@ def coarse_training_with_density_regularization(args):
     # -----Log and save-----
     print_loss_every_n_iterations = 50
     save_model_every_n_iterations = 1_000_000
-    save_milestones = [9000, 12_000, 15_000]
+    # save_milestones = [9000, 12_000, 15_000]
+    save_milestones = [15_000]
 
     # ====================End of parameters====================
 
@@ -250,6 +251,7 @@ def coarse_training_with_density_regularization(args):
             )
     
     use_eval_split = args.eval
+    use_white_background = args.white_background
     
     ply_path = os.path.join(source_path, "sparse/0/points3D.ply")
     
@@ -264,6 +266,7 @@ def coarse_training_with_density_regularization(args):
     CONSOLE.print("SDF estimation factor:", sdf_estimation_factor)
     CONSOLE.print("SDF better normal factor:", sdf_better_normal_factor)
     CONSOLE.print("Eval split:", use_eval_split)
+    CONSOLE.print("White background:", use_white_background)
     CONSOLE.print("---------------------------")
     
     # Setup device
@@ -290,6 +293,7 @@ def coarse_training_with_density_regularization(args):
         load_gt_images=True,
         eval_split=use_eval_split,
         eval_split_interval=n_skip_images_for_eval_split,
+        white_background=use_white_background,
         )
 
     CONSOLE.print(f'{len(nerfmodel.training_cameras)} training images detected.')
@@ -348,6 +352,12 @@ def coarse_training_with_density_regularization(args):
     
     if not regularize_sdf:
         beta_mode = None
+        
+    # Background tensor if needed
+    if use_white_background:
+        bg_tensor = torch.ones(3, dtype=torch.float, device=nerfmodel.device)
+    else:
+        bg_tensor = None
     
     # ====================Initialize SuGaR model====================
     # Construct SuGaR model
@@ -500,7 +510,7 @@ def coarse_training_with_density_regularization(args):
                 outputs = sugar.render_image_gaussian_rasterizer( 
                     camera_indices=camera_indices.item(),
                     verbose=False,
-                    bg_color = None,
+                    bg_color = bg_tensor,
                     sh_deg=current_sh_levels-1,
                     sh_rotations=None,
                     compute_color_in_rasterizer=compute_color_in_rasterizer,

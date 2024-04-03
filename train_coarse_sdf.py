@@ -20,6 +20,7 @@ if __name__ == "__main__":
                         help='iteration to load.')
     
     parser.add_argument('--eval', type=str2bool, default=True, help='Use eval split.')
+    parser.add_argument('--white_background', type=str2bool, default=False, help='Use a white background instead of black.')
     
     parser.add_argument('-e', '--estimation_factor', type=float, default=0.2, help='factor to multiply the estimation loss by.')
     parser.add_argument('-n', '--normal_factor', type=float, default=0.2, help='factor to multiply the normal loss by.')

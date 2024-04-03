@@ -265,10 +265,6 @@ def refined_training(args):
     surface_mesh_normal_consistency_factor = args.normal_consistency_factor    
     n_gaussians_per_surface_triangle = args.gaussians_per_triangle
     n_vertices_in_fg = args.n_vertices_in_fg
-    
-    surface_mesh_normal_consistency_factor = args.normal_consistency_factor    
-    n_gaussians_per_surface_triangle = args.gaussians_per_triangle
-    n_vertices_in_fg = args.n_vertices_in_fg
     num_iterations = args.refinement_iterations
     
     sugar_checkpoint_path = 'sugarfine_' + mesh_name.replace('sugarmesh_', '') + '_normalconsistencyXX_gaussperfaceYY/'
@@ -284,6 +280,7 @@ def refined_training(args):
         fg_bbox_max = args.bboxmax
     
     use_eval_split = args.eval
+    use_white_background = args.white_background
     
     export_ply_at_the_end = args.export_ply
     
@@ -304,6 +301,7 @@ def refined_training(args):
         CONSOLE.print("Foreground bounding box min:", fg_bbox_min)
         CONSOLE.print("Foreground bounding box max:", fg_bbox_max)
     CONSOLE.print("Use eval split:", use_eval_split)
+    CONSOLE.print("Use white background:", use_white_background)
     CONSOLE.print("Export ply at the end:", export_ply_at_the_end)
     CONSOLE.print("----------------------------")
     
@@ -331,6 +329,7 @@ def refined_training(args):
         load_gt_images=True,
         eval_split=use_eval_split,
         eval_split_interval=n_skip_images_for_eval_split,
+        white_background=use_white_background,
         )
 
     CONSOLE.print(f'{len(nerfmodel.training_cameras)} training images detected.')
@@ -360,10 +359,12 @@ def refined_training(args):
                     colors = colors[start_prune_mask]
             n_points = len(points)
     else:
-        CONSOLE.print("\nLoading SfM point cloud...")
-        pcd = fetchPly(ply_path)
-        points = torch.tensor(pcd.points, device=nerfmodel.device).float().cuda()
-        colors = torch.tensor(pcd.colors, device=nerfmodel.device).float().cuda()
+        # CONSOLE.print("\nLoading SfM point cloud...")
+        # pcd = fetchPly(ply_path)
+        # points = torch.tensor(pcd.points, device=nerfmodel.device).float().cuda()
+        # colors = torch.tensor(pcd.colors, device=nerfmodel.device).float().cuda()
+        points = torch.randn(1000, 3, device=nerfmodel.device)
+        colors = torch.rand(1000, 3, device=nerfmodel.device)
     
         if n_points_at_start is not None:
             n_points = n_points_at_start
@@ -372,7 +373,7 @@ def refined_training(args):
         else:
             n_points = len(points)
             
-    CONSOLE.print(f"Point cloud generated. Number of points: {len(points)}")
+    # CONSOLE.print(f"Point cloud generated. Number of points: {len(points)}")
     
     # Mesh to bind to if needed  TODO
     if bind_to_surface_mesh:
@@ -390,6 +391,12 @@ def refined_training(args):
     
     if not regularize_sdf:
         beta_mode = None
+        
+    # Background tensor if needed
+    if use_white_background:
+        bg_tensor = torch.ones(3, dtype=torch.float, device=nerfmodel.device)
+    else:
+        bg_tensor = None
     
     # ====================Initialize SuGaR model====================
     # Construct SuGaR model
@@ -546,7 +553,7 @@ def refined_training(args):
                 outputs = sugar.render_image_gaussian_rasterizer( 
                     camera_indices=camera_indices.item(),
                     verbose=False,
-                    bg_color = None,
+                    bg_color = bg_tensor,
                     sh_deg=current_sh_levels-1,
                     sh_rotations=None,
                     compute_color_in_rasterizer=compute_color_in_rasterizer,

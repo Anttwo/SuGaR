@@ -1,4 +1,5 @@
 import torch.nn as nn
+from torch.nn.functional import normalize as torch_normalize
 import open3d as o3d
 from pytorch3d.renderer import TexturesUV, TexturesVertex
 from pytorch3d.structures import Meshes
@@ -18,7 +19,8 @@ from sugar_scene.cameras import CamerasWrapper
 
 scale_activation = torch.exp
 scale_inverse_activation = torch.log
-        
+use_old_method = False
+
 
 def _initialize_radiuses_gauss_rasterizer(sugar):
     """Function to initialize the  of a SuGaR model.
@@ -338,7 +340,12 @@ class SuGaR(nn.Module):
             
             # Reference scaling factor
             if self.editable:
-                self.reference_scaling_factor = (faces_verts - faces_verts.mean(dim=1, keepdim=True)).norm(dim=-1).mean(dim=-1, keepdim=True)
+                if use_old_method:
+                    self.reference_scaling_factor = (faces_verts - faces_verts.mean(dim=1, keepdim=True)).norm(dim=-1).mean(dim=-1, keepdim=True)
+                else:
+                    self._reference_points = self._points.clone().detach()
+                    self._reference_normals = self.surface_mesh.faces_normals_list()[0].clone()
+                    self.edited_cache = None
         
         # Initialize color features
         self.sh_levels = sh_levels
@@ -412,10 +419,22 @@ class SuGaR(nn.Module):
         else:
             plane_scales = self.scale_activation(self._scales)
             if self.editable:
-                faces_verts = self._points[self._surface_mesh_faces]
-                faces_centers = faces_verts.mean(dim=1, keepdim=True)
-                scaling_factor = (faces_verts - faces_centers).norm(dim=-1).mean(dim=-1, keepdim=True) / self.reference_scaling_factor
-                plane_scales = plane_scales * scaling_factor[:, None].expand(-1, self.n_gaussians_per_surface_triangle, -1).reshape(-1, 1)
+                if use_old_method:
+                    # Old method described in the original SuGaR paper
+                    faces_verts = self._points[self._surface_mesh_faces]
+                    faces_centers = faces_verts.mean(dim=1, keepdim=True)
+                    scaling_factor = (faces_verts - faces_centers).norm(dim=-1).mean(dim=-1, keepdim=True) / self.reference_scaling_factor
+                    plane_scales = plane_scales * scaling_factor[:, None].expand(-1, self.n_gaussians_per_surface_triangle, -1).reshape(-1, 1)
+                else:
+                    # New method with better scaling
+                    if (self.edited_cache is not None) and self.edited_cache.shape[-1]==3:
+                        scales = self.edited_cache
+                        self.edited_cache = None
+                    else:
+                        quaternions, scales = self.get_edited_quaternions_and_scales()
+                        self.edited_cache = quaternions
+                    return scales
+
             scales = torch.cat([
                 self.surface_mesh_thickness * torch.ones(len(self._scales), 1, device=self.device), 
                 plane_scales,
@@ -427,27 +446,35 @@ class SuGaR(nn.Module):
         if not self.binded_to_surface_mesh:
             quaternions = self._quaternions
         else:
-            # We compute quaternions to enforce face normals to be the first axis of gaussians
-            R_0 = torch.nn.functional.normalize(self.surface_mesh.faces_normals_list()[0], dim=-1)
+            if (not self.editable) or (use_old_method):                
+                # We compute quaternions to enforce face normals to be the first axis of gaussians
+                R_0 = torch.nn.functional.normalize(self.surface_mesh.faces_normals_list()[0], dim=-1)
 
-            # We use the first side of every triangle as the second base axis
-            faces_verts = self._points[self._surface_mesh_faces]
-            base_R_1 = torch.nn.functional.normalize(faces_verts[:, 0] - faces_verts[:, 1], dim=-1)
+                # We use the first side of every triangle as the second base axis
+                faces_verts = self._points[self._surface_mesh_faces]
+                base_R_1 = torch.nn.functional.normalize(faces_verts[:, 0] - faces_verts[:, 1], dim=-1)
 
-            # We use the cross product for the last base axis
-            base_R_2 = torch.nn.functional.normalize(torch.cross(R_0, base_R_1, dim=-1))
-            
-            # We now apply the learned 2D rotation to the base quaternion
-            complex_numbers = torch.nn.functional.normalize(self._quaternions, dim=-1).view(len(self._surface_mesh_faces), self.n_gaussians_per_surface_triangle, 2)
-            R_1 = complex_numbers[..., 0:1] * base_R_1[:, None] + complex_numbers[..., 1:2] * base_R_2[:, None]
-            R_2 = -complex_numbers[..., 1:2] * base_R_1[:, None] + complex_numbers[..., 0:1] * base_R_2[:, None]
+                # We use the cross product for the last base axis
+                base_R_2 = torch.nn.functional.normalize(torch.cross(R_0, base_R_1, dim=-1))
+                
+                # We now apply the learned 2D rotation to the base quaternion
+                complex_numbers = torch.nn.functional.normalize(self._quaternions, dim=-1).view(len(self._surface_mesh_faces), self.n_gaussians_per_surface_triangle, 2)
+                R_1 = complex_numbers[..., 0:1] * base_R_1[:, None] + complex_numbers[..., 1:2] * base_R_2[:, None]
+                R_2 = -complex_numbers[..., 1:2] * base_R_1[:, None] + complex_numbers[..., 0:1] * base_R_2[:, None]
 
-            # We concatenate the three vectors to get the rotation matrix
-            R = torch.cat([R_0[:, None, ..., None].expand(-1, self.n_gaussians_per_surface_triangle, -1, -1).clone(),
-                        R_1[..., None],
-                        R_2[..., None]],
-                        dim=-1).view(-1, 3, 3)
-            quaternions = matrix_to_quaternion(R)
+                # We concatenate the three vectors to get the rotation matrix
+                R = torch.cat([R_0[:, None, ..., None].expand(-1, self.n_gaussians_per_surface_triangle, -1, -1).clone(),
+                            R_1[..., None],
+                            R_2[..., None]],
+                            dim=-1).view(-1, 3, 3)
+                quaternions = matrix_to_quaternion(R)
+            else:
+                if (self.edited_cache is not None) and self.edited_cache.shape[-1]==4:
+                    quaternions = self.edited_cache
+                    self.edited_cache = None
+                else:
+                    quaternions, scales = self.get_edited_quaternions_and_scales()
+                    self.edited_cache = scales
             
         return torch.nn.functional.normalize(quaternions, dim=-1)
     
@@ -534,9 +561,110 @@ class SuGaR(nn.Module):
     
     def make_editable(self):
         if self.binded_to_surface_mesh and (not self.editable):
-            self.editable = True
-            faces_verts = self._points[self._surface_mesh_faces]  # n_faces, 3, n_coords
-            self.reference_scaling_factor = (faces_verts - faces_verts.mean(dim=1, keepdim=True)).norm(dim=-1).mean(dim=-1, keepdim=True)
+            self.editable = True            
+            if use_old_method:
+                faces_verts = self._points[self._surface_mesh_faces]  # n_faces, 3, n_coords
+                self.reference_scaling_factor = (faces_verts - faces_verts.mean(dim=1, keepdim=True)).norm(dim=-1).mean(dim=-1, keepdim=True)
+            else:
+                self._reference_points = self._points.clone().detach()
+                self._reference_normals = self.surface_mesh.faces_normals_list()[0].clone()
+                self.edited_cache = None
+            
+    def get_edited_quaternions_and_scales(self, verbose=False):
+        if not self.editable:
+            raise ValueError("The model is not editable. Call make_editable() first.")
+        
+        reference_verts = self._reference_points[self._surface_mesh_faces]
+        reference_normals = self._reference_normals
+        faces_verts = self._points[self._surface_mesh_faces]
+        bary_coords = self.surface_triangle_bary_coords#[None]
+        faces_normals = self.surface_mesh.faces_normals_list()[0]
+        
+        # Then compute the points using barycenter coordinates in the surface triangles
+        points = faces_verts[:, None] * bary_coords[None]  # n_faces, n_gaussians_per_face, 3, n_coords
+        points = points.sum(dim=-2)  # n_faces, n_gaussians_per_face, n_coords
+        
+        # Compute initial rotation matrices of faces
+        R_0 = torch.nn.functional.normalize(faces_normals, dim=-1)
+        base_R_1 = torch.nn.functional.normalize(faces_verts[:, 0] - faces_verts[:, 1], dim=-1)
+        base_R_2 = torch.nn.functional.normalize(torch.cross(R_0, base_R_1, dim=-1))
+        
+        # =====Adjust rotation to the current deformation=====
+        reference_base = torch.nn.functional.normalize(reference_verts[:, 0:1] - reference_verts[:, 1:2], dim=-1)  # n_faces, 1, 3
+        reference_axis = torch.nn.functional.normalize(reference_verts - reference_verts.mean(dim=-2, keepdim=True), dim=-1)  # n_faces, 3, 3
+        reference_axis[:, 2] = -reference_axis[:, 2]
+        
+        faces_base = torch.nn.functional.normalize(faces_verts[:, 0:1] - faces_verts[:, 1:2], dim=-1)  # n_faces, 1, 3
+        faces_axis = torch.nn.functional.normalize(faces_verts - faces_verts.mean(dim=-2, keepdim=True), dim=-1)  # n_faces, 3, 3
+        faces_axis[:, 2] = -faces_axis[:, 2]
+        
+        # Compute angle between the reference and the current sides
+        reference_angles = torch.arccos((reference_axis * reference_base).sum(dim=-1, keepdim=True).clamp(min=-1., max=1.))  # n_faces, 3, 1
+        faces_angles = torch.arccos((faces_axis * faces_base).sum(dim=-1, keepdim=True).clamp(min=-1., max=1.))  # n_faces, 3, 1
+        angles = faces_angles - reference_angles  # n_faces, 3, 1
+        point_angles = (angles[:, None] * bary_coords[None]).sum(dim=-2)  # n_faces, n_gaussians_per_face, 1
+
+        # Compute the complex number that will adjust the rotation the gaussians
+        point_adjust_complex = torch.cat([torch.cos(point_angles), torch.sin(point_angles)], dim=-1)
+        
+        # We compute the complex number representing the learned 2D rotation
+        complex_numbers = torch.nn.functional.normalize(self._quaternions, dim=-1).view(len(self._surface_mesh_faces), self.n_gaussians_per_surface_triangle, 2)
+        
+        # We apply the adjustment to the complex numbers
+        x, y = complex_numbers[..., 0].clone(), complex_numbers[..., 1].clone()
+        a, b = point_adjust_complex[..., 0], point_adjust_complex[..., 1]
+        complex_numbers[..., 0] = x * a - y * b
+        complex_numbers[..., 1] = x * b + y * a
+        
+        # We now apply the 2D rotation to the base quaternion
+        R_1 = complex_numbers[..., 0:1] * base_R_1[:, None] + complex_numbers[..., 1:2] * base_R_2[:, None]  # n_faces, n_gaussians_per_face, 3
+        R_2 = -complex_numbers[..., 1:2] * base_R_1[:, None] + complex_numbers[..., 0:1] * base_R_2[:, None]  # n_faces, n_gaussians_per_face, 3
+
+        # We concatenate the three vectors to get the rotation matrix, and compute the final quaternion
+        R = torch.cat([
+            R_0[:, None, ..., None].expand(-1, self.n_gaussians_per_surface_triangle, -1, -1).clone(),
+            R_1[..., None],
+            R_2[..., None]
+            ],
+            dim=-1)
+        quaternions = matrix_to_quaternion(R)
+        
+        # =====Adjust scales to the current deformation=====
+        all_faces_axis = faces_verts.mean(dim=-2, keepdim=True) - faces_verts  # Shape (n_faces, 3, 3)
+        all_faces_axis_norm = torch.norm(all_faces_axis, dim=-1, keepdim=True)  # Shape (n_faces, 3, 1)
+        all_faces_axis = torch_normalize(all_faces_axis, dim=-1)  # Shape (n_faces, 3, 3)
+        all_faces_orthos = torch.cross(all_faces_axis, faces_normals[:, None], dim=-1)  # Shape (n_faces, 3, 3)
+        
+        all_reference_axis = reference_verts.mean(dim=-2, keepdim=True) - reference_verts  # Shape (n_faces, 3, 3)
+        all_reference_axis_norm = torch.norm(all_reference_axis, dim=-1, keepdim=True)  # Shape (n_faces, 3, 1)
+        all_reference_axis = torch_normalize(all_reference_axis, dim=-1)  # Shape (n_faces, 3, 3)
+        
+        axis_proj_1 = (R_1[..., None, :] * all_faces_axis[:, None]).sum(dim=-1, keepdim=True)  # Shape (n_faces, n_gaussians_per_face, 3, 1)
+        ortho_proj_1 = (R_1[..., None, :] * all_faces_orthos[:, None]).sum(dim=-1, keepdim=True)  # Shape (n_faces, n_gaussians_per_face, 3, 1)
+        side_proj_2 = (R_2[..., None, :] * all_faces_axis[:, None]).sum(dim=-1, keepdim=True)  # Shape (n_faces, n_gaussians_per_face, 3, 1)
+        ortho_proj_2 = (R_2[..., None, :] * all_faces_orthos[:, None]).sum(dim=-1, keepdim=True)  # Shape (n_faces, n_gaussians_per_face, 3, 1)
+        
+        scaling_1 = torch.sqrt(  (axis_proj_1 * all_faces_axis_norm[:, None] / all_reference_axis_norm[:, None])**2 + ortho_proj_1**2  )  # Shape (n_faces, n_gaussians_per_face, 3, 1)
+        scaling_2 = torch.sqrt(  (side_proj_2 * all_faces_axis_norm[:, None] / all_reference_axis_norm[:, None])**2 + ortho_proj_2**2  )  # Shape (n_faces, n_gaussians_per_face, 3, 1)
+        
+        scaling_1 = (scaling_1 * bary_coords[None]).sum(dim=-2)  # Shape (n_faces, n_gaussians_per_face, 1)
+        scaling_2 = (scaling_2 * bary_coords[None]).sum(dim=-2)  # Shape (n_faces, n_gaussians_per_face, 1)
+        
+        plane_scales = self.scale_activation(self._scales).view(-1, self.n_gaussians_per_surface_triangle, 2)
+        plane_scales[..., 0:1] = plane_scales[..., 0:1] * scaling_1
+        plane_scales[..., 1:2] = plane_scales[..., 1:2] * scaling_2
+        scales = torch.cat([
+            self.surface_mesh_thickness * torch.ones(len(self._scales), 1, device=self.device), 
+            plane_scales.view(-1, 2),
+            ], dim=-1)
+        
+        if verbose:
+            with torch.no_grad():
+                print("Computed edited quaternions and scales.")
+                print("Mean - std - min - max - median")
+                print("Scaling1:", scaling_1.mean().item(), scaling_1.std().item(), scaling_1.min().item(), scaling_1.max().item(), scaling_1.median().item())
+                print("Scaling2:", scaling_2.mean().item(), scaling_2.std().item(), scaling_2.min().item(), scaling_2.max().item(), scaling_2.median().item())
+        return quaternions, scales
     
     def unbind_surface_mesh(self):
         self._quaternions = nn.Parameter(self.quaternions.detach(), requires_grad=self.learn_quaternions).to(self.nerfmodel.device)
@@ -785,7 +913,8 @@ class SuGaR(nn.Module):
             else:
                 areas = areas * self.strengths[mask].view(-1)
         areas = areas.abs()
-        cum_probs = areas.cumsum(dim=-1) / areas.sum(dim=-1, keepdim=True)
+        # cum_probs = areas.cumsum(dim=-1) / areas.sum(dim=-1, keepdim=True)
+        cum_probs = areas / areas.sum(dim=-1, keepdim=True)
         
         random_indices = torch.multinomial(cum_probs, num_samples=num_samples, replacement=True)
         if mask is not None:

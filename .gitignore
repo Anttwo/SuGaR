@@ -8,6 +8,13 @@ output*
 sugar_tests.ipynb
 sugar_sh_tests.ipynb
 
+# To remove
+frosting*
+extract_shell.py
+train_frosting_refined.py
+train_frosting.py
+run_frosting_viewer.py
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

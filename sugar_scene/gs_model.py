@@ -74,6 +74,9 @@ class GaussianSplattingWrapper:
                  load_gt_images=True,
                  eval_split=False,
                  eval_split_interval=8,
+                 background=[0., 0., 0.],
+                 white_background=False,
+                 remove_camera_indices=[],
                  ) -> None:
         """Initialize the Gaussian Splatting model wrapper.
         
@@ -90,10 +93,18 @@ class GaussianSplattingWrapper:
                 Defaults to False.
             eval_split_interval (int, optional): Every eval_split_interval images, an image is added to the evaluation set. 
                 Defaults to 8 (following standard practice).
+            background (list, optional): Background color. Defaults to [0., 0., 0.].
+            white_background (bool, optional): If True, uses a white background instead of black. Defaults to False.
+            remove_camera_indices (list, optional): List of indices of cameras to remove from the set of cameras. 
+                Defaults to [].
         """
         self.source_path = source_path
         self.output_path = output_path
         self.loaded_iteration = iteration_to_load
+        
+        if os.path.basename(source_path) in ['chair', 'drums', 'ficus', 'hotdog', 'lego', 'materials', 'mic', 'ship']:
+            if len(remove_camera_indices) == 0.:
+                remove_camera_indices = [i for i in range(0, 200)]
         
         if model_params is None:
             model_params = ModelParams()
@@ -106,12 +117,17 @@ class GaussianSplattingWrapper:
         self.pipeline_params = pipeline_params
         self.opt_params = opt_params
         
+        if white_background:
+            background = [1., 1., 1.]
+        
         self._C0 = 0.28209479177387814
         
         cam_list = load_gs_cameras(
             source_path=source_path,
             gs_output_path=output_path,
             load_gt_images=load_gt_images,
+            white_background=white_background,
+            remove_indices=remove_camera_indices,
             )
         
         if eval_split:
@@ -144,6 +160,8 @@ class GaussianSplattingWrapper:
                 "point_cloud.ply"
                 )
             )
+        
+        self.background = torch.tensor(background, device='cuda', dtype=torch.float32)
 
     @property
     def device(self):
@@ -185,7 +203,9 @@ class GaussianSplattingWrapper:
         camera = gs_cameras[camera_indices]
         render_pkg = gs_render(camera, self.gaussians, 
                             self.pipeline_params, 
-                            bg_color=torch.zeros(3, device='cuda'))
+                            # bg_color=torch.zeros(3, device='cuda'),
+                            bg_color=self.background,
+                            )
         
         if return_whole_package:
             return render_pkg

@@ -13,7 +13,8 @@ from sugar_utils.general_utils import PILtoTorch
 
 
 def load_gs_cameras(source_path, gs_output_path, image_resolution=1, 
-                    load_gt_images=True, max_img_size=1920):
+                    load_gt_images=True, max_img_size=1920, white_background=False,
+                    remove_indices=[]):
     """Loads Gaussian Splatting camera parameters from a COLMAP reconstruction.
 
     Args:
@@ -22,6 +23,8 @@ def load_gs_cameras(source_path, gs_output_path, image_resolution=1,
         image_resolution (int, optional): Factor by which to downscale the images. Defaults to 1.
         load_gt_images (bool, optional): If True, loads the ground truth images. Defaults to True.
         max_img_size (int, optional): Maximum size of the images. Defaults to 1920.
+        white_background (bool, optional): If True, uses a white background. Defaults to False.
+        remove_indices (list, optional): List of indices to remove. Defaults to [].
 
     Returns:
         List of GSCameras: List of Gaussian Splatting cameras.
@@ -30,6 +33,32 @@ def load_gs_cameras(source_path, gs_output_path, image_resolution=1,
     
     with open(gs_output_path + 'cameras.json') as f:
         unsorted_camera_transforms = json.load(f)
+        
+    # Remove indices
+    if len(remove_indices) > 0:
+        print("Removing cameras with indices:", remove_indices, sep="\n")
+        new_unsorted_camera_transforms = []
+        for i in range(len(unsorted_camera_transforms)):
+            if i not in remove_indices:
+                new_unsorted_camera_transforms.append(unsorted_camera_transforms[i])
+        unsorted_camera_transforms = new_unsorted_camera_transforms
+        
+    # Removing cameras with same image name
+    error_names_list = []
+    camera_dict = {}
+    for i in range(len(unsorted_camera_transforms)):
+        name = unsorted_camera_transforms[i]['img_name']
+        if name in camera_dict:
+            error_names_list.append(name)
+        camera_dict[name] = unsorted_camera_transforms[i]
+    if len(error_names_list) > 0:
+        print("Warning: Found multiple cameras with same GT image name:", error_names_list, sep="\n")
+        print("For each GT image, only the last camera will be kept.")
+        new_unsorted_camera_transforms = []
+        for name in camera_dict:
+            new_unsorted_camera_transforms.append(camera_dict[name])
+        unsorted_camera_transforms = new_unsorted_camera_transforms
+    
     camera_transforms = sorted(unsorted_camera_transforms.copy(), key = lambda x : x['img_name'])
 
     cam_list = []
@@ -70,6 +99,12 @@ def load_gs_cameras(source_path, gs_output_path, image_resolution=1,
         
         if load_gt_images:
             image = Image.open(image_path)
+            if white_background:
+                im_data = np.array(image.convert("RGBA"))
+                bg = np.array([1,1,1])
+                norm_data = im_data / 255.0
+                arr = norm_data[:,:,:3] * norm_data[:, :, 3:4] + bg * (1 - norm_data[:, :, 3:4])
+                image = Image.fromarray(np.array(arr*255.0, dtype=np.byte), "RGB")
             orig_w, orig_h = image.size
             downscale_factor = 1
             if image_resolution in [1, 2, 4, 8]:
