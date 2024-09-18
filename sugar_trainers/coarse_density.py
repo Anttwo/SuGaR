@@ -532,7 +532,7 @@ def coarse_training_with_density_regularization(args):
                 pred_rgb = pred_rgb.transpose(-1, -2).transpose(-2, -3)  # TODO: Change for torch.permute
                 
                 # Gather rgb ground truth
-                gt_image = nerfmodel.get_gt_image(camera_indices=camera_indices)           
+                gt_image = nerfmodel.get_gt_image(camera_indices=camera_indices).cuda()           
                 gt_rgb = gt_image.view(-1, sugar.image_height, sugar.image_width, 3)
                 gt_rgb = gt_rgb.transpose(-1, -2).transpose(-2, -3)
                     
