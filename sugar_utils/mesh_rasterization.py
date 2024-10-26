@@ -4,6 +4,10 @@ from pytorch3d.structures import Meshes
 from pytorch3d.renderer import RasterizationSettings as P3DRasterizationSettings
 from pytorch3d.renderer import MeshRasterizer as P3DMeshRasterizer
 try:
+    # Ensure the NVDIFRAST_BACKEND is set to 'PACKED' if using the CUDA rasterizer
+    if os.environ.get('NVDIFRAST_CUDA_RASTERIZER', '0') in ('1', 'True', 'true'):
+        os.environ.setdefault('NVDIFRAST_BACKEND', 'PACKED')
+
     from .nvdiffrast import nvdiff_rasterization, dr
     nvdiffrast_available = True
 except ImportError:
@@ -97,9 +101,14 @@ class MeshRasterizer(torch.nn.Module):
         
         else:
             raise ValueError("cameras must be either CamerasWrapper, P3DCameras, GSCamera or list of GSCamera")
-        
+
         if self.use_nvdiffrast:
-            self.gl_context = dr.RasterizeGLContext()
+            use_cuda_rasterizer = os.environ.get('NVDIFRAST_CUDA_RASTERIZER', '0') in ('1', 'True', 'true')
+
+            if use_cuda_rasterizer:
+                self.gl_context = dr.RasterizeCudaContext()
+            else:
+                self.gl_context = dr.RasterizeGLContext()
         else:
             self._p3d_mesh_rasterizer = P3DMeshRasterizer(
                 cameras=self.cameras.p3d_cameras,
@@ -135,14 +144,31 @@ class MeshRasterizer(torch.nn.Module):
                 raise ValueError("cameras must be either CamerasWrapper, P3DCameras, GSCamera or list of GSCamera")
 
             height, width = render_camera.image_height, render_camera.image_width
-            bary_coords, zbuf, pix_to_face = nvdiff_rasterization(
-                camera=render_camera,
-                image_height=height, 
-                image_width=width,
-                mesh=mesh,
-                return_indices_only=False,
-                glctx=self.gl_context,
-            )
+            if self.use_cuda_rasterizer:
+                # Prepare vertex positions in homogeneous coordinates
+                verts = mesh.verts_padded()  # Shape: [batch_size, num_verts, 3]
+                batch_size, num_verts, _ = verts.shape
+                w = torch.ones((batch_size, num_verts, 1), device=verts.device)
+                pos = torch.cat([verts, w], dim=-1)  # Shape: [batch_size, num_verts, 4]
+                faces = mesh.faces_padded()
+                bary_coords, zbuf, pix_to_face = nvdiff_rasterization(
+                    camera=render_camera,
+                    image_height=height,
+                    image_width=width,
+                    pos=pos,
+                    faces=faces,
+                    return_indices_only=False,
+                    glctx=self.gl_context,
+                )
+            else:
+                bary_coords, zbuf, pix_to_face = nvdiff_rasterization(
+                    camera=render_camera,
+                    image_height=height,
+                    image_width=width,
+                    mesh=mesh,
+                    return_indices_only=False,
+                    glctx=self.gl_context,
+                )
             pix_to_face = pix_to_face - 1
             if return_only_pix_to_face:
                 return pix_to_face.view(1, height, width, 1)
